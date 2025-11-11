@@ -30,7 +30,53 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCh
 from sklearn.utils.class_weight import compute_class_weight
 
 # Streamlit
+import os
 import streamlit as st
+
+def set_bg_crop_image():
+    bg_path = "nature.jpg"  # replace with any image placed in your project folder
+
+    if os.path.exists(bg_path):
+        with open(bg_path, "rb") as f:
+            import base64
+            encoded = base64.b64encode(f.read()).decode()
+
+        st.markdown(
+            f"""
+            <style>
+            [data-testid="stAppViewContainer"] {{
+                background-image: url("data:image/png;base64,{encoded}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+            }}
+            [data-testid="stHeader"] {{
+                background: rgba(0,0,0,0);
+            }}
+            [data-testid="stSidebar"] {{
+                background: rgba(0,0,0,0.65);
+                color: white;
+            }}
+            .result-box {{
+                background-color: rgba(0,0,0,0.65);
+                padding: 15px;
+                border-radius: 12px;
+                margin-top: 10px;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+                color: white;
+            }}
+            .center {{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
 
 # PDF export
 from fpdf import FPDF
@@ -319,15 +365,37 @@ def make_simple_pdf_report(label, conf, topk, pil_img):
 # Streamlit UI
 # -------------------------
 def run_streamlit():
+    set_bg_crop_image()
     st.set_page_config(page_title="Crop Disease Detector", layout="wide")
-    st.title("🌾 Crop Disease Prediction — CNN (CPU friendly)")
+
+    st.markdown("""
+    <style>
+    .stButton button {
+        background: linear-gradient(45deg, #4CAF50, #81C784);
+        color: white;
+        padding: 10px 24px;
+        font-size: 18px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .stButton button:hover {
+        background: linear-gradient(45deg, #388E3C, #66BB6A);
+        transform: scale(1.05);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.title("🌾 Crop Disease Prediction — CNN")
 
     st.sidebar.header("About")
     st.sidebar.markdown("""
     - Custom CNN
     - Image size: 256x256, strong augmentation, class weights
     - Grad-CAM explainability included
-    - Balloons appear after prediction 🎉
+    - PDF report generation
+    - Train via CLI: `python crop_disease_allinone.py --train --data_dir PATH_TO_DATA`
     """)
 
     model, meta = None, {}
@@ -355,7 +423,8 @@ def run_streamlit():
     pil_img = Image.open(uploaded_file).convert('RGB')
     st.image(pil_img, caption="Uploaded Image", width=320)
 
-    if st.sidebar.button("Predict"):
+    if st.button("🔍 Predict", use_container_width=True):
+
         if not model_loaded:
             st.error("Model not loaded. Train first.")
             return
